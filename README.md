@@ -13,4 +13,4 @@ mpirun -n 8 python3 srim_simple.py json/example_iron.json
 
 As the simulation runs, the script logs some output to log/example_iron.log (iteration, dose, pxx, pyy, ..., lx, ly, lz), and writes dump files every few iterations into the scratch directory. The simulation can be stopped and restarted from the last snapshot any time.
 
-A sample job submission file is given in `jobs/data_initial.job`. This runs a 1 million atom cascade simulations from an initial configuration (unzip `initial/data.perf10shear.zip` first).
+A sample job submission file for the CSD3 system is given in `jobs/data_initial.job`. This runs a 1 million atom cascade simulations from an initial configuration (unzip `initial/data.perf10shear.zip` first).
