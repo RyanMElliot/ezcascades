@@ -1,8 +1,8 @@
 {
     "job_name": "example_iron",
     "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
-    "scratch_dir": "/home/dc-bole2/git/ezcascade/data/",
-    "sim_dir": "/home/dc-bole2/git/ezcascade/",
+    "scratch_dir": "/home/dc-bole2/git/ezcascades/data/",
+    "sim_dir": "/home/dc-bole2/git/ezcascades/",
 
     "potential": "Fe_2.eam.fs",
     "atomtype": 1,
@@ -34,7 +34,7 @@
     "minruntime": 10.0,
     "runCG": 1,
    
-    "PKAfile": "/home/dc-bole2/git/ezcascade/1keV.pka",
+    "PKAfile": "/home/dc-bole2/git/ezcascades/1keV.pka",
     "PKAmin": 50.0,
     "PKAmax": 20000.0,
     "edavg": 40.0,

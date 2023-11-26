@@ -1,10 +1,10 @@
 {
     "job_name": "data_initial",
     "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
-    "scratch_dir": "/home/dc-bole2/git/ezcascade/data/",
-    "sim_dir": "/home/dc-bole2/git/ezcascade/",
+    "scratch_dir": "/home/dc-bole2/git/ezcascades/data/",
+    "sim_dir": "/home/dc-bole2/git/ezcascades/",
 
-    "potential": "Fe_2.eam.fs",
+    "potential": "Fe-P.eam.fs",
     "atomtype": 1,
     "alloy": 0,
 
@@ -37,7 +37,7 @@
     "minruntime": 10.0,
     "runCG": 1,
    
-    "PKAfile": "/home/dc-bole2/git/ezcascade/1keV.pka",
+    "PKAfile": "/home/dc-bole2/git/ezcascades/1keV.pka",
     "PKAmin": 50.0,
     "PKAmax": 20000.0,
     "edavg": 40.0,
@@ -65,6 +65,6 @@
         1
     ],
 
-    "initial": "/home/dc-bole2/git/ezcascade/initial/data.perf10shear",
+    "initial": "/home/dc-bole2/git/ezcascades/initial/data.perf10shear",
     "initialtype": "data"
 }
