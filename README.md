@@ -19,12 +19,12 @@ The script writes regular log and restart files from which the simulation can be
 
 ## Running the code
 
-To start an example overlapping cascade simulation in tungsten from the terminal, use the script as follows:
+To start an example overlapping cascade simulation in tungsten from the terminal, first ensure that a tungsten EAM potential is available, such as `W_MNB_JPCM17.eam.fs` by [Mason et al. (2017)](https://doi.org/10.1088/1361-648X/aa9776) available at the [NIST Interatomic Potentials repository](https://www.ctcms.nist.gov/potentials/), and then run the script as follows:
 
 ```
 mpirun -n 8 python3 ezcascades.py json/example_tungsten.json
 ```
 
-As the simulation runs, the script logs some output to `log/example_iron.log` (iteration, dose, pxx, pyy, ..., lx, ly, lz), and writes dump files every few iterations into the scratch directory. When the `simulation_clear` flag is set to zero in `json/example_tungsten.json`, the simulation can be stopped and restarted from the last snapshot. 
+As the simulation runs, the script logs some output to `log/example_tungsten.log` (iteration, dose, pxx, pyy, ..., lx, ly, lz), and writes dump files every few iterations into the scratch directory. When the `simulation_clear` flag is set to zero in `json/example_tungsten.json`, the simulation can be stopped and restarted from the last snapshot. 
 
 A sample job submission file for the CSD3 system is given in `jobs/data_initial.job`. This job runs a 1 million atom cascade simulation from an initial configuration (unzip `initial/data.perf10shear.zip` first).
