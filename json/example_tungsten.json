@@ -3,7 +3,7 @@
     "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
     "scratch_dir": "./data/",
     "sim_dir": "./",
-    "potential": "w_mnb.eam",
+    "potential": "W_MNB_JPCM17.eam.fs",
 
     "composition": {"1":  1.0},
     "masses": {"1": 183.84},
