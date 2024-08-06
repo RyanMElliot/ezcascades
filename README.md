@@ -13,6 +13,6 @@ The script writes regular log and restart files from which the simulation can be
 mpirun -n 8 python3 ezcascades.py json/example_tungsten.json
 ```
 
-As the simulation runs, the script logs some output to log/example_iron.log (iteration, dose, pxx, pyy, ..., lx, ly, lz), and writes dump files every few iterations into the scratch directory. The simulation can be stopped and restarted from the last snapshot any time. 
+As the simulation runs, the script logs some output to `log/example_iron.log` (iteration, dose, pxx, pyy, ..., lx, ly, lz), and writes dump files every few iterations into the scratch directory. When the `simulation_clear` flag is set to zero in `json/example_tungsten.json`, the simulation can be stopped and restarted from the last snapshot. 
 
 A sample job submission file for the CSD3 system is given in `jobs/data_initial.job`. This job runs a 1 million atom cascade simulation from an initial configuration (unzip `initial/data.perf10shear.zip` first).
