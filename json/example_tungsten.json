@@ -1,46 +1,44 @@
 {
     "job_name": "example_tungsten",
     "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
-    "scratch_dir": "/home/dc-bole2/git/ezcascades/data/",
-    "sim_dir": "/home/dc-bole2/git/ezcascades/",
-
+    "scratch_dir": "./data/",
+    "sim_dir": "./",
     "potential": "w_mnb.eam",
-    "atomtype": 1,
-    "alloy": 0,
+
+    "composition": {"1":  1.0},
+    "masses": {"1": 183.84},
+    "znums": {"1": 74},
 
     "write_data": 1,
-    "relax_clear": 0,
-    "export_nth": 5,
+    "simulation_clear": 1,
+    "export_nth": 1,
 
     "max_steps": 50000,
     "etol": "1e-12",
+    "boxstress": {"x": 0.0, "y": 0.0, "z": 0.0},
 
-    "freebox": [
-        "x",
-        "y",
-        "z"
-    ],
-
-    "boxstress": [0.0, 0.0, 0.0],
-    "temperature": 0.0,
-    "B0nuclear": 1.188,
-    "B0electronic": 21.16,
-
-    "Tmelt": 3695.0,
-    "Ecut": 10.0, 
-    "Efinal": 200000.0, 
-
-    "maxtemperature": 10000.0,
-    "minruntime": 10.0,
-    "runCG": 1,
-   
-    "PKAfile": "/home/dc-bole2/git/ezcascades/1keV.pka",
+    "PKAfile": "./pkafiles/100.0eV.pka",
     "PKAmin": 50.0,
     "PKAmax": 100000.0,
     "edavg": 90.0,
 
     "maxdpa": 1.0,
     "incrementdpa": 0.0002,
+
+    "temperature": 295.0,
+    "thermalisation_time" : 5.0,
+    "melting_temperature": 3500.0,
+
+    "langevin_damping_time": 16.4,
+    "barostat_damping_time": 50.0,
+
+    "stoppingfile": "./stoppingfiles/W-W.dat",
+    "electronic_stopping_threshold": 10.0,
+
+    "maxtemperature": 10000.0,
+    "minruntime": 5.0,
+
+    "runCG": 0,
 
     "nx": 32,
     "ny": 32,

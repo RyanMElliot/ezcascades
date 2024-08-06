@@ -9,6 +9,9 @@ def nrtdamage(Td, Ed):
     else:
         return 0.8*Td/(2*Ed)
 
+def quickdamage(Td, Ed):
+    return 0.8*Td/(2*Ed)
+
 # lindhard stopping model
 class Lindhard:
     def __init__(self, A1, A2, Z1, Z2):

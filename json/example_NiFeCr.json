@@ -1,16 +1,16 @@
 {
-    "job_name": "example_iron",
+    "job_name": "example_NiFeCr",
     "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
-    "scratch_dir": "./data/",
+    "scratch_dir": "./data/", 
     "sim_dir": "./",
-    "potential": "Fe_2.eam.fs",
+    "potential": "FeNiCr_ArturV3.eam",
 
-    "composition": {"1":  1.0},
-    "masses": {"1": 55.845},
-    "znums": {"1": 26},
+    "composition": {"1": 0.094, "2": 0.714, "3": 0.192},
+    "masses": {"1": 58.6934, "2": 55.845, "3": 51.9961},
+    "znums": {"1": 28, "2": 26, "3": 24},
 
     "write_data": 1,
-    "simulation_clear": 1,
+    "simulation_clear": 0,
     "export_nth": 5,
 
     "max_steps": 50000,
@@ -18,31 +18,33 @@
     "boxstress": {"x": 0.0, "y": 0.0, "z": 0.0},
 
     "PKAfile": "./pkafiles/100.0eV.pka",
-    "PKAmin": 20.0,
+    "PKAmin": 15.0,
     "PKAmax": 20000.0,
     "edavg": 40.0,
+    "Ecut": 10.0,
 
     "maxdpa": 1.0,
     "incrementdpa": 0.0002,
 
-    "temperature": 295.0,
-    "thermalisation_time" : 10.0,
+    "temperature": 0.0,
+    "thermalisation_time": 10.0,
     "melting_temperature": 1800.0,
-
-    "langevin_damping_time": 1.0,
+    
+    "langevin_damping_time": 5.0,
     "barostat_damping_time": 50.0,
 
-    "stoppingfile": "./stoppingfiles/Fe-Fe.dat",
+    "stoppingfile": "./stoppingfiles/NiFeCr.dat",
     "electronic_stopping_threshold": 10.0,
 
     "maxtemperature": 10000.0,
     "minruntime": 10.0,
 
-    "runCG": 0,
+    "runCG": 1,
+    "runCGinitial": 1,
 
-    "nx": 32,
-    "ny": 32,
-    "nz": 32,
+    "nx": 20,
+    "ny": 20,
+    "nz": 20,
 
     "ix": [
         1,
@@ -58,7 +60,5 @@
         0,
         0,
         1
-    ],
-
-    "initialfile": 0
+    ]
 }
