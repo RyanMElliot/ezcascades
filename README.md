@@ -1,5 +1,5 @@
 # ezcascades
-LAMMPS Python script for simulating high-dose irradiation damage. (c) UKAEA April 2024
+LAMMPS Python script for simulating high-dose irradiation damage
 
 Full details of the method are available at:
 * Simultaneous cascades for large-scale high dose simulation: [10.1103/PhysRevMaterials.6.063601](https://doi.org/10.1103/PhysRevMaterials.6.063601)
