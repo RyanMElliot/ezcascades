@@ -1,5 +1,5 @@
 # ezcascades
-LAMMPS Python script for simulating high-dose irradiation damage for a given recoil spectrum
+LAMMPS Python script for simulating high-dose irradiation damage. (c) UKAEA April 2024
 
 This script drives the [LAMMPS Molecular Dynamics Simulator](https://github.com/lammps/lammps) to simulate the evolution of microstructure under the influence of irradiation, simulated in the form of highly energetic atomic recoils. The script supports the simulation of single element materials and alloys, starting from the pristine crystal or a supplied structure, at thermal or athermal conditions, under displacement or stress constraints. The script enables simulation of large-scale high-dose microstructures (see [10.1103/PhysRevMaterials.6.063601](https://doi.org/10.1103/PhysRevMaterials.6.063601) for 21 mio atoms of tungsten at 1 dpa) through initialisation of multiple non-overlapping recoils per cascade iteration, with each iteration propagating the dose by a fixed dose increment. The repository comes with a script to convert [SRIM](http://www.srim.org/) electronic stopping tables to the format supported by LAMMPS.
 
