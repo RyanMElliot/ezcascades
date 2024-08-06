@@ -4,10 +4,9 @@ import numpy as np
 from scipy.spatial import cKDTree
 
 #from lib.eaminfo import Import_eamfs
-from lib.local_tools import eam_info
-from lib.lindhard import Lindhard, nrtdamage, quickdamage
-
-from ctypes import *
+from lib.eam_info import eam_info
+from lib.lindhard import Lindhard, quickdamage
+from lib.helperfuncs import sample_spherical, get_dump_frame, is_triclinic 
 
 # load lammps module and style and variable types
 from lammps import lammps
@@ -40,42 +39,6 @@ def mpiprint(*arg):
         sys.stdout.flush()
     return 0
 
-def sample_spherical(npoints, ndim=3):
-    vec = np.random.randn(ndim, npoints)
-    vec /= np.linalg.norm(vec, axis=0)
-    return vec.T
-
-def get_dump_frame(fpath):
-    # helper function for fetching frame in a dump file
-    with open(fpath, 'r') as fp:
-        fp.readline()
-        frame = int(fp.readline())
-    return frame
-
-
-def is_triclinic(fpath):
-    # helper function for determining if dump file describes an orthogonal or triclinic box
-    with open(fpath, 'r') as fp:
-        fp.readline()
-        fp.readline()
-        fp.readline()
-        fp.readline()
-        string = fp.readline()
-        if "xy xz yz" in string:
-            tri = True
-        else:
-            tri = False
-
-        fp.readline()
-        fp.readline()
-        fp.readline()
-
-        # also, check next line and see if atom types are included
-        string = fp.readline()
-        if " type " not in string:
-            announce("Warning: no atomic type column found in %s. Command read_dump will fail!" % fpath)
-    return tri            
-
 
 
 def announce(string):
@@ -94,7 +57,7 @@ def main():
     program_descripton = f'''
         LAMMPS Simulation script for running overlapping cascades for alloys
 
-        Max Boleininger, Nov 2024
+        Max Boleininger, Aug 2024
         max.boleininger@ukaea.uk
 
         Licensed under the Creative Commons Zero v1.0 Universal
@@ -179,7 +142,7 @@ def main():
 
     potfile = potdir + potname
 
-    # Any monatomic EAM potential file will be scraped for lattice parameters etc
+    # Any EAM potential file will be scraped for lattice parameters etc
     potential = eam_info(potfile) # Read off
 
     mpiprint ('''Potential and elastic constants information:
@@ -431,7 +394,11 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
             lmp.command('read_data %s' % initial)
         elif initialtype == "dump":
             initialframe = get_dump_frame(initial)
-            if is_triclinic(initial):
+
+            tri, flag = is_triclinic (initial)
+            if flag:
+                announce (flag)
+            if tri:
                 lmp.command('run 0')
                 lmp.command('change_box all triclinic')
             lmp.command('read_dump %s %d x y z purge yes add yes box yes replace no' % (initial, initialframe))
