@@ -52,9 +52,10 @@ The json input file currently supports the following flags:
 * `export_nth`: Export a dump snapshot every this many cascade iterations (integer). The snapshot will be exported as file "`scratch_dir`/`job_name`/`job_name`.*.dump", where "*" refers to the cascade iteration. The approximate dose in units of dpa can be calculated by the prduct of the cascade iteration and `incrementdpa`. If this value is zero, no snapshots are exported. [Example setting: `5`]
 
 ### Relaxation settings
+* boxstress`: Stress constraints (in GPa) on the simulation box (Python dictionary). If `temperature` = 0, then the stress is maintained by the method of conjugate gradients after each cascade iteraiton. If `temperature` > 0.0, then the stress is maintained at all times with a Nose-Hoover barostat. The stress components are represented in LAMMPS format, with the flags "x", "y", "z", "xy", "xz", "yz". If shear components are entered, then the simulation box will changed to become triclinic. [Example setting: `{"x": 1.0, "xy": -0.2}`]
 * `runCG`: Flag whether system is to be relaxed to a local energy minimum after each cascade iteration (boolean integer). If yes, then after completion of a cascade iteration, atomic velocities are zeroed and then atomic coordinates relaxed using the method of conjugate gradients. Afterwards, depending on the stress constraints on the simulation box (see `boxstress`), another relaxation might be performed, this time also relaxing box dimensions to reach any given stress constraints. This flag should not be used if `temperature` is larger than zero! [Example settings: `0` or 1]
 * `max_steps`: Maximum number of conjugate gradient relaxation steps (integer). [Example setting: `500000`]
-* `etol`: Relative nergy convergence criterion for conjugate gradient relaxation (string). [Example setting: `"1e-12"`]
+* `etol`: Relative energy convergence criterion for conjugate gradient relaxation (string). [Example setting: `"1e-12"`]
 
 ### Recoil spectrum settings
 * `PKAfile`: Path to file (relative to `sim_dir`) containing a set of recoil energies (in eV) representative of the irradiation (string). Recoil energies for ion irradiation of a given material can, for example, be exported from SRIM's `COLLISIONS.txt` file. For monoenergetic recoils, the file can contain a single line with the specified recoil energy. Cascade recoil energies are randomly drawn from the entries in this file until the specified dose increment (`incrementdpa`) is reached. [Example setting: `"./pkafiles/100.0eV.pka"`]
@@ -70,8 +71,6 @@ The json input file currently supports the following flags:
 * `maxdpa`: Maximum dose (in dpa) up to which the simulation is propagated to (float). Cascade iterations are repeated until the specified dose is reached. If the simulation terminates before the dose is reached, the simulation can be started again to continue from its most recent snapshot (make sure you set `simulation_clear`: 0!) [Example setting: `1.0`]
 * `incrementdpa`: Target dose increment (in dpa) per cascade iteration (float). In each cascade iteration, recoil energies are randomly drawn from the `PKAfile` until the specified dose increment is reached, within a tolerance. These recoil energies will then be applied to random atoms in the system, spaced apart sufficiently far to not overlap. A too high dose increment will lead to significant heating of the system. [Example setting: `0.0002`]
 
-## BELOW: TODO
-
 ### Thermostat and Barostat settings
 * `temperature`: Thermostat temperature (in Kelvin) at which the simulation is maintained (float). The thermostat is a Langevin thermostat, acting on atoms with a temperature below `melting_temperature`. This is to avoid applying the damping term, which is essentially an [approximate representation of electron-phonon coupling in the low ionic velocity limit](https://doi.org10.1088/0953-8984/27/14/145401), to atoms that are likely to be in a molten environment or part of a collision cascade in the ballistic phase. [Example setting: `300.0`]
 * `thermalisation_time` : Thermalisation time (in ps) for the system (float). If `temperature` > 0.0, then the system will be thermalised before the very first cascade iteration. This time should be long enough to let the system equilibrate.  [Example setting: `50.0`]
@@ -84,11 +83,11 @@ The json input file currently supports the following flags:
 * `minruntime`: Maximum time (in ps) that each cascade iteration is propagated for (float). This parameter is used to ensure that each cascade iteration progresses for a set amount of time (with a very minor variability due to the use an adaptive time-step). Only when the cascade propagation time exceeds `minruntime` and the system temperature subceeds `maxtemperature`, will the next cascade iteration be initialised. [Example setting: `10.0`]
 
 ### Simulation cell settings 
-* `boxstress`: Stress constraints (in GPa) on the simulation box (Python dictionary). If `temperature` = 0, then the stress is maintained by the method of conjugate gradients after each cascade iteraiton. If `temperature` > 0.0, then the stress is maintained at all times with a Nose-Hoover barostat. The stress components are represented in LAMMPS format, with the flags "x", "y", "z", "xy", "xz", "yz". If shear components are entered, then the simulation box will changed to become triclinic. [Example setting: {"x": 1.0, "xy": -0.2}]
-* `nx`: 32,
-* `ny`: 32,
-* `nz`: 32,
-* `ix`: asddas
-* `iy`: asd
-* `iz`: asd
+The following settings are used to intialise the single crystal if no `initialfile` is supplied. The vectors given in `ix`, `iy` and `iz` should form a right-handed basis set. The simulation box is then spanned by the vectors `nx`*`ix`, `ny`*`iy`, and `nz`*`iz`.
+* `nx`: Number of repeats of `ix` lattice vectors (float). [Example setting: `100`]
+* `ny`: Number of repeats of `iy` lattice vectors (float). [Example setting: `100`]
+* `nz`: Number of repeats of `iz` lattice vectors (float). [Example setting: `100`]
+* `ix`: First lattice vector (lattice units) spanning the simulation box (3x1 list of floats). [Example setting: `[1,0,0]`]
+* `iy`: Second lattice vector (lattice units) spanning the simulation box (3x1 list of floats). [Example setting: `[0,1,0]`]
+* `iz`: Third lattice vector (lattice units) spanning the simulation box (3x1 list of floats). [Example setting: `[0,0,1]`]
 
