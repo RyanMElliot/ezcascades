@@ -52,7 +52,7 @@ The json input file currently supports the following flags:
 * `export_nth`: Export a dump snapshot every this many cascade iterations (integer). The snapshot will be exported as file "`scratch_dir`/`job_name`/`job_name`.*.dump", where "*" refers to the cascade iteration. The approximate dose in units of dpa can be calculated by the prduct of the cascade iteration and `incrementdpa`. If this value is zero, no snapshots are exported. [Example setting: `5`]
 
 ### Relaxation settings
-* boxstress`: Stress constraints (in GPa) on the simulation box (Python dictionary). If `temperature` = 0, then the stress is maintained by the method of conjugate gradients after each cascade iteraiton. If `temperature` > 0.0, then the stress is maintained at all times with a Nose-Hoover barostat. The stress components are represented in LAMMPS format, with the flags "x", "y", "z", "xy", "xz", "yz". If shear components are entered, then the simulation box will changed to become triclinic. [Example setting: `{"x": 1.0, "xy": -0.2}`]
+* `boxstress`: Stress constraints (in GPa) on the simulation box (Python dictionary). If `temperature` = 0, then the stress is maintained by the method of conjugate gradients after each cascade iteraiton. If `temperature` > 0.0, then the stress is maintained at all times with a Nose-Hoover barostat. The stress components are represented in LAMMPS format, with the flags "x", "y", "z", "xy", "xz", "yz". If shear components are entered, then the simulation box will changed to become triclinic. [Example setting: `{"x": 1.0, "xy": -0.2}`]
 * `runCG`: Flag whether system is to be relaxed to a local energy minimum after each cascade iteration (boolean integer). If yes, then after completion of a cascade iteration, atomic velocities are zeroed and then atomic coordinates relaxed using the method of conjugate gradients. Afterwards, depending on the stress constraints on the simulation box (see `boxstress`), another relaxation might be performed, this time also relaxing box dimensions to reach any given stress constraints. This flag should not be used if `temperature` is larger than zero! [Example settings: `0` or `1`]
 * `max_steps`: Maximum number of conjugate gradient relaxation steps (integer). [Example setting: `500000`]
 * `etol`: Relative energy convergence criterion for conjugate gradient relaxation (string). [Example setting: `"1e-12"`]
@@ -64,7 +64,7 @@ The json input file currently supports the following flags:
 * `edavg`: Average displacement threshold energy (in eV) for computing the NRT dose (float). This value should be adjusted depending on the material. [Example setting: `90.0`]
 
 ### Electronic stopping model
-* `stoppingfile`: Path to file (relative to `sim_dir`) containing the electronic stopping table (string). These can be generated from SRIM`s stopping tables using the `make_stopping_table.py` script. [Example setting: `"./stoppingfiles/W-W.dat"`]
+* `stoppingfile`: Path to file (relative to `sim_dir`) containing the electronic stopping table (string). These can be generated from SRIM\`s stopping tables using the `make_stopping_table.py` script. [Example setting: `"./stoppingfiles/W-W.dat"`]
 * `electronic_stopping_threshold`: Minimum kinetic energy (in eV) above which electronic stopping is applied (float). [Example setting: `10.0`]
   
 ### Irradiation dose settings
