@@ -73,19 +73,18 @@ The json input file currently supports the following flags:
 ## BELOW: TODO
 
 ### Thermostat and Barostat settings
-* `temperature`: 295.0,
-* `thermalisation_time` : 5.0,
-* `melting_temperature`: 3500.0,
-
-* `langevin_damping_time`: 16.4,
-* `barostat_damping_time`: 50.0,
+* `temperature`: Thermostat temperature (in Kelvin) at which the simulation is maintained (float). The thermostat is a Langevin thermostat, acting on atoms with a temperature below `melting_temperature`. This is to avoid applying the damping term, which is essentially an [approximate representation of electron-phonon coupling in the low ionic velocity limit](https://doi.org10.1088/0953-8984/27/14/145401), to atoms that are likely to be in a molten environment or part of a collision cascade in the ballistic phase. [Example setting: `300.0`]
+* `thermalisation_time` : Thermalisation time (in ps) for the system (float). If `temperature` > 0.0, then the system will be thermalised before the very first cascade iteration. This time should be long enough to let the system equilibrate.  [Example setting: `50.0`]
+* `melting_temperature`: Approximate melting temperature (in Kelvin) of the material (float). Atoms with temperature above `melting_temperature` are not subjected to the Langevin thermostat. This temperature is also used to estimate the size of the cascade heat spike, which is used to ensure that atomic recoils are not placed too close together. [Example setting: `2000.0`]
+* `langevin_damping_time`: Dampening time (in ps) for the Langevin thermostat (float). This number should be chosen to appoximately represent the [electron-phonon coupling timescale](https://doi.org10.1088/0953-8984/27/14/145401).  [Example setting: `5.0`]
+* `barostat_damping_time`: Dampening time (in ps) for the Nose-Hoover thermostat (float). In thermal simulations (`temperature` > 0.0), the barostat is used to maintain the simulation box stress constraints. [Example setting: `50.0`]
 
 ### Cascade iteration competion criteria 
-* `maxtemperature`: 10000.0,
-* `minruntime`: 5.0,
+* `maxtemperature`: Maximum system temperature (in Kelvin) before the cascade iteration can be terminated (float). This parameter can be used to ensure that the system cools down to a specified maximum temperature before the next cascade iteration. This number should not be lower than `temperature`, otherwise the cascade iteration is unlikely to complete. Set this number to a very large value to strictly progress after a set amount of propagation time. Only when the cascade propagation time exceeds `minruntime` and the system temperature subceeds `maxtemperature`, will the next cascade iteration be initialised. [Example setting: `10000000.0`]
+* `minruntime`: Maximum time (in ps) that each cascade iteration is propagated for (float). This parameter is used to ensure that each cascade iteration progresses for a set amount of time (with a very minor variability due to the use an adaptive time-step). Only when the cascade propagation time exceeds `minruntime` and the system temperature subceeds `maxtemperature`, will the next cascade iteration be initialised. [Example setting: `10.0`]
 
 ### Simulation cell settings 
-* `boxstress`: {"x": 0.0, "y": 0.0, "z": 0.0}
+* `boxstress`: Stress constraints (in GPa) on the simulation box (Python dictionary). If `temperature` = 0, then the stress is maintained by the method of conjugate gradients after each cascade iteraiton. If `temperature` > 0.0, then the stress is maintained at all times with a Nose-Hoover barostat. The stress components are represented in LAMMPS format, with the flags "x", "y", "z", "xy", "xz", "yz". If shear components are entered, then the simulation box will changed to become triclinic. [Example setting: {"x": 1.0, "xy": -0.2}]
 * `nx`: 32,
 * `ny`: 32,
 * `nz`: 32,
