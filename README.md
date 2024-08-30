@@ -83,7 +83,7 @@ The json input file currently supports the following flags:
 * `minruntime`: Maximum time (in ps) that each cascade iteration is propagated for (float). This parameter is used to ensure that each cascade iteration progresses for a set amount of time (with a very minor variability due to the use an adaptive time-step). Only when the cascade propagation time exceeds `minruntime` and the system temperature subceeds `maxtemperature`, will the next cascade iteration be initialised. [Example setting: `10.0`]
 
 ### Simulation cell settings 
-The following settings are used to intialise the single crystal if no `initialfile` is supplied. The vectors given in `ix`, `iy` and `iz` should form a right-handed basis set. The simulation box is then spanned by the vectors `nx`*`ix`, `ny`*`iy`, and `nz`*`iz`.
+The following settings are used to intialise the single crystal if no `initialfile` is supplied. The vectors given in `ix`, `iy` and `iz` should form a right-handed basis set. The simulation box is then spanned by the vectors `nx`\*`ix`, `ny`\*`iy`, and `nz`\*`iz`. If the EAM potential specifies an HCP structure, then an orthogonal simulation cell is built.
 * `nx`: Number of repeats of `ix` lattice vectors (float). [Example setting: `100`]
 * `ny`: Number of repeats of `iy` lattice vectors (float). [Example setting: `100`]
 * `nz`: Number of repeats of `iz` lattice vectors (float). [Example setting: `100`]
