@@ -4,7 +4,7 @@ LAMMPS Python script for simulating high-dose irradiation damage
 Full details of the method are available at:
 * Simultaneous cascades for large-scale high dose simulation: [10.1103/PhysRevMaterials.6.063601](https://doi.org/10.1103/PhysRevMaterials.6.063601)
 * Varying recoil energies in different materials:             [10.1038/s41598-022-27087-w](https://doi.org/10.1038/s41598-022-27087-w)
-* Cascades with recoil energies drawn from a spectrum:        [10.48550/arXiv.2401.13385](https://doi.org/10.48550/arXiv.2401.13385)
+* Cascades with recoil energies drawn from a spectrum:        [10.1038/s43246-024-00655-5](https://doi.org/10.1038/s43246-024-00655-5)
 
 
 ## Features
