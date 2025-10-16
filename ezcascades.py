@@ -515,7 +515,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
         lmp.command('run 0')
 
         # print initial thermo quantities in log file
-        lmp.command("variable vpe equal pe")
+        lmp.command('variable vpe equal pe')
         lmp.command("variable vpxx equal pxx")
         lmp.command("variable vpyy equal pyy")
         lmp.command("variable vpzz equal pzz")
@@ -525,6 +525,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
         lmp.command("variable vlx equal lx")
         lmp.command("variable vly equal ly")
         lmp.command("variable vlz equal lz")
+
         lmp.command("print '%d %f ${vpe} ${vpxx} ${vpyy} ${vpzz} ${vpxy} ${vpxz} ${vpyz} ${vlx} ${vly} ${vlz}' append %s/log/%s.log" % (iteration, 0.0, simdir, job_name))
 
         # for consistency, also write an essentially empty line into the pka file 
@@ -533,9 +534,17 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
     # initialise stopping model
     lmp.command('fix fstopping all electron/stopping %f %s' % (electronic_stopping_threshold, stoppingfile))
 
+    # RME: Add n_vac to thermo
+    lmp.command('compute voronoi all voronoi/atom occupation')
+    lmp.command('variable isvac atom (c_voronoi[1]==0)')
+    lmp.command('compute nvac all reduce sum v_isvac')
+
+    #lmp.command('group gvac dynamic all var isvac every %d' % nth)
+    #lmp.command('variable nvac equal count(gvac)')
+
     lmp.command('thermo %d' % nth)
-    lmp.command('thermo_style custom step dt time temp press pe c_cketot v_vndamped pxx pyy pzz pxy pxz pyz lx ly lz')
-    lmp.command("thermo_modify line one format line '%8d %5.3e %7.3f %6.3f %11.3e %15.8e %15.8e %8.0f %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %7.3f %7.3f %7.3f'")
+    lmp.command('thermo_style custom step dt time temp press pe c_cketot v_vndamped pxx pyy pzz pxy pxz pyz lx ly lz c_nvac') #added nvac
+    lmp.command("thermo_modify line one format line '%8d %5.3e %7.3f %6.3f %11.3e %15.8e %15.8e %8.0f %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %7.3f %7.3f %7.3f %9.0f'")
 
     # apply Langevin damping to dynamic group
     lmp.command('run 0')
@@ -592,7 +601,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
         # print out first dump
         if all_input['write_data']:
-            lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z' % (scrdir, job_name, job_name, iteration))
+            lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z c_voronoi[1] c_voronoi[2]' % (scrdir, job_name, job_name, iteration))
 
 
     # lindhard electronic stopping model for damage energy
@@ -920,7 +929,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
         if ((iteration + cloop) % export_nth) == 0:
             dfile = "%s/%s/%s.%d.dump" % (scrdir, job_name, job_name, iteration+cloop)
             announce("Writing dump file %s." % dfile)
-            lmp.command('write_dump all custom %s id type x y z' % dfile)     
+            lmp.command('write_dump all custom %s id type x y z c_voronoi[1] c_voronoi[2]' % dfile)
 
         comm.barrier()
 
