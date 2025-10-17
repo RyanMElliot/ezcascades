@@ -758,7 +758,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
                         break
                 
                 if not trisuccess:
-                    annouce ("Error: could not place a random point inside triclinic cell after %d attempts." % nattempts)
+                    announce ("Error: could not place a random point inside triclinic cell after %d attempts." % nattempts)
                     return 1
 
                 _ncasc = len(cascade_pos)
@@ -939,7 +939,11 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print("Error occurred:", e)
+        comm.Abort(1)
 
     if mode == 'MPI':
         MPI.Finalize()
