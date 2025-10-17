@@ -1,5 +1,6 @@
 # initialise
 import os, sys, json, glob
+import traceback
 import numpy as np
 from scipy.spatial import cKDTree
 
@@ -942,7 +943,9 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+        #RME: If error occurs, catch and abort
         print("Error occurred:", e)
+        traceback.print_tb(e.__traceback__)
         comm.Abort(1)
 
     if mode == 'MPI':
