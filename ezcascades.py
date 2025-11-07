@@ -602,7 +602,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
         # print out first dump
         if all_input['write_data']:
-            lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z c_voronoi[1] c_voronoi[2]' % (scrdir, job_name, job_name, iteration))
+            lmp.command('write_dump all custom %s/%s/%s.dump id type x y z c_voronoi[1] c_voronoi[2]' % (scrdir, job_name, job_name))
 
 
     # lindhard electronic stopping model for damage energy
@@ -648,14 +648,14 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
         return exc_rad
     exc_radius = np.vectorize (exclusion_radius)
 
- 
+
     # run consecutive cascades 
     for cloop in range(1, int(1e6)):
-    
+
         if dpadose >= maxdpa:
             announce ("Finished simulation. Current dose is %8.3f dpa, with target dose given by %8.3f dpa." % (dpadose, maxdpa))
-            break 
- 
+            break
+        
         # extract cell dimensions 
         N = lmp.extract_global("natoms", 0)
         xlo, xhi = lmp.extract_global("boxxlo", 2), lmp.extract_global("boxxhi", 2)
@@ -692,9 +692,16 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
 
         if (me == 0):
+            json.dump({"x_max":np.max(_x),
+                       "x_min":np.min(_x),
+                       "xfrac":_xfrac.tolist(),
+                       "cmat":cmat.tolist(),
+                       "x": _x.tolist()},
+                       open("%s/%s/%s.json" % (scrdir, job_name, job_name), 'w'), indent=4)
+            
             # incremental applied dose (using damage energy)
             appdose = 0.0
-            doselimit = incrementdpa 
+            doselimit = incrementdpa
 
             mpiprint ("Draw random cascade energies until the minimal dose increment is reached.")
 
@@ -828,11 +835,11 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
             _ki = kick_indices[_c]
             mpiprint("Atom ID %d at (%8.3f, %8.3f, %8.3f) gets %12.6f eV recoil energy (%12.6f A/ps)." % (1+_ki,
                     _x[_ki][0]+xlo, _x[_ki][1]+ylo, _x[_ki][2]+zlo, cascade_pka[_c], np.linalg.norm(kick_velocities[_c])))
-        
-            lmp.command('group gkick id %d' % kick_indices[_c])
+
+            lmp.command('group gkick id %d' % (_ki+1))
             lmp.command('velocity gkick set %f %f %f sum yes units box' % tuple(kick_velocities[_c]))
             lmp.command('group gkick delete') 
-        mpiprint ()
+        mpiprint()
 
         # initially strict adaptive time-step
         lmp.command('fix ftimestep all dt/reset 1 NULL 0.002 0.01 units box')
