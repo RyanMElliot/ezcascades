@@ -602,7 +602,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
         # print out first dump
         if all_input['write_data']:
-            lmp.command('write_dump all custom %s/%s/%s.dump id type x y z c_voronoi[1] c_voronoi[2]' % (scrdir, job_name, job_name))
+            lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z c_voronoi[1] c_voronoi[2]' % (scrdir, job_name, job_name, iteration))
 
 
     # lindhard electronic stopping model for damage energy
