@@ -1,0 +1,58 @@
+{
+    "job_name": "NiFeCr_fpsample",
+    "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
+    "scratch_dir": "./data/", 
+    "sim_dir": "./",
+    "potential": "FeNiCr_ArturV3.eam",
+
+    "alloy": 1,
+    "composition": {"1": 0.094, "2": 0.714, "3": 0.192},
+    "masses": {"1": 58.6934, "2": 55.845, "3": 51.9961},
+
+    "write_data": 0,
+    "max_steps": 50000,
+
+    "etol": "1e-10",
+    "freebox": [
+        "x",
+        "y",
+        "z"
+    ],
+
+    "temperature": 0.0,
+    "langevin_melting_temperature": 1500.0,
+    "langevin_damping_time": 5.0,
+
+    "electronic_stopping_threshold": 10.0,
+
+    "stoppingfile": "./stoppingfiles/NiFeCr.dat",
+
+    "Tmelt": 1500.0,
+
+    "maxtemperature": 5000.0,
+    "minruntime": 10.0,
+
+    "target_stderr": 5.0,
+    "maxruns": 100,
+    "runCG": 1,
+
+    "nx": 12,
+    "ny": 12,
+    "nz": 12,
+
+    "ix": [
+        1,
+        0,
+        0
+    ],
+    "iy": [
+        0,
+        1,
+        0
+    ],
+    "iz": [
+        0,
+        0,
+        1
+    ]
+}

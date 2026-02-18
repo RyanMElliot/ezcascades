@@ -1,49 +1,44 @@
 {
     "job_name": "data_initial",
     "potential_path": "/home/dc-bole2/Simulations/EAMPotentials/",
-    "scratch_dir": "/home/dc-bole2/git/ezcascades/data/",
-    "sim_dir": "/home/dc-bole2/git/ezcascades/",
+    "scratch_dir": "./data/",
+    "sim_dir": "./",
+    "potential": "Fe_2.eam.fs",
 
-    "potential": "Fe-P.eam.fs",
-    "atomtype": 1,
-    "alloy": 0,
+    "composition": {"1":  1.0},
+    "masses": {"1": 55.845},
+    "znums": {"1": 26},
 
     "write_data": 1,
-    "relax_clear": 0,
+    "simulation_clear": 0,
     "export_nth": 5,
 
     "max_steps": 50000,
     "etol": "1e-12",
+    "boxstress": {"x": 0.0, "y": 0.0, "z": 0.0},
 
-    "freebox": [
-        "x",
-        "y",
-        "z",
-        "xy",
-        "yz",
-        "xz"
-    ],
-
-    "boxstress": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-    "temperature": 0.0,
-    "B0nuclear": 6.875,
-    "B0electronic": 5.88,
-
-    "Tmelt": 1811.0,
-    "Ecut": 10.0, 
-    "Efinal": 200000.0, 
-
-    "maxtemperature": 10000.0,
-    "minruntime": 10.0,
-    "runCG": 1,
-   
-    "PKAfile": "/home/dc-bole2/git/ezcascades/1keV.pka",
-    "PKAmin": 50.0,
+    "PKAfile": "./pkafiles/1000.0eV.pka",
+    "PKAmin": 20.0,
     "PKAmax": 20000.0,
     "edavg": 40.0,
 
     "maxdpa": 1.0,
     "incrementdpa": 0.0002,
+
+    "temperature": 295.0,
+    "thermalisation_time" : 10.0,
+    "melting_temperature": 1800.0,
+
+    "langevin_damping_time": 1.0,
+    "barostat_damping_time": 50.0,
+
+    "stoppingfile": "./stoppingfiles/Fe-Fe.dat",
+    "electronic_stopping_threshold": 10.0,
+
+    "maxtemperature": 10000.0,
+    "minruntime": 10.0,
+
+    "runCG": 0,
 
     "nx": 32,
     "ny": 32,
@@ -65,6 +60,6 @@
         1
     ],
 
-    "initial": "/home/dc-bole2/git/ezcascades/initial/data.perf10shear",
+    "initial": "./initial/data.perf10shear",
     "initialtype": "data"
 }

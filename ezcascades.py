@@ -1,10 +1,11 @@
 # initialise
-import os, sys, json, glob
-import traceback
+import os
+import sys
+import json
+import glob
 import numpy as np
 from scipy.spatial import cKDTree
 
-#from lib.eaminfo import Import_eamfs
 from lib.eam_info import eam_info
 from lib.lindhard import Lindhard, quickdamage
 from lib.helperfuncs import sample_spherical, get_dump_frame, is_triclinic 
@@ -127,7 +128,7 @@ def main():
             if os.path.exists(restartpath):
                 announce ("Found restart file: %s" % restartpath)
             else:
-                announce ("Restart file %s not found. Starting new simulation." % restartpath)
+                announce ("Casacade restart file %s not found. Starting new simulation." % restartpath)
                 restartpath = None
             restartfile = restartpath
             
@@ -376,7 +377,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
     # read restart file and continue simulation from there, if available 
     if restartfile:
-        announce("Restarting from file: %s" % restartfile)
+        announce("Restarting from last cascade file: %s" % restartfile)
         lmp.command('read_data %s' % restartfile)
 
         # import log file and fetch last dose
@@ -389,7 +390,10 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
     elif initial:
         # otherwise look for an initial file
-        announce("Starting from file: %s" % initial)
+        announce("Initialising structure from file: %s" % initial)
+
+        # if neither initial nor restartfile have been given, initiate single crystal
+        lmp.command('create_box %d r_simbox' % nelements) 
 
         if initialtype == "data":
             lmp.command('read_data %s' % initial)
@@ -714,7 +718,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
                 cascade_pka = []
 
                 # lower limit: higher than dose limit
-                while (appdose <= (1.0-incrtol)*doselimit):
+                while (appdose <= max(0, (1.0-incrtol)*doselimit)):
                     epka = 0.
                     while (epka <= pkamin) or (epka > pkamax):
                         epka = np.random.choice(pkas)
@@ -728,16 +732,24 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
                     appdose = np.sum(ndefects/N)
 
                 nattempts += 1
-                if nattempts >= 1000:
+                if nattempts == 1000:
                     print ()
                     print ("Could not draw damage energies within the range of [%3.2f*doseincrement, %3.2f*doseincrement] after %d attempts!" % (1.0-incrtol, 1.2+incrtol, nattempts))
-                    incrtol += 0.1
-                    print ("Increasing interval range.")
+                    print ("Proceeding to increase the acceptable dose range until damage energies can be drawn.")
                     print ()
+                    
+                if nattempts >= 1000:
+                    incrtol += 0.1
+                    
+                if appdose > 1.5*incrementdpa:
+                    print ("Error: could not accomodate recoil energise without exceeding 1.5 times the dose increment (c.f. %f vs %f dpa)!" % (appdose, incrementdpa))
+                    print ("Your system might be too small to accomodate such large cascades. Consider increasing the system size.")
+                    sys.stdout.flush()
+                    return 0 
 
-            print ("Dose increment:", appdose)
-
-
+            print ("Final range: [%3.2f*doseincrement, %3.2f*doseincrement] after %d attempts." % (1.0-incrtol, 1.2+incrtol, nattempts))
+            print ("Selecting recoils corresponding to a dose increment of: %f dpa" % appdose)
+            
             # sort PKA energies in descending order to ensure we can fit in the largest cascades
             cascade_pka = np.flip(np.sort(cascade_pka))
             ncascades = len(cascade_pka)

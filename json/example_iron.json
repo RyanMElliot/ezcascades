@@ -60,5 +60,6 @@
         1
     ],
 
-    "initialfile": 0
+    "initial": 0,
+    "initialtype": 0
 }
