@@ -6,6 +6,8 @@ import glob
 import numpy as np
 from scipy.spatial import cKDTree
 
+import traceback
+
 from lib.eam_info import eam_info
 from lib.lindhard import Lindhard, quickdamage
 from lib.helperfuncs import sample_spherical, get_dump_frame, is_triclinic 
