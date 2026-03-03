@@ -463,6 +463,8 @@ def main():
         natoms  = lmp.extract_global("natoms", 0)
         nfrenkel = int(natoms*incrementdpa)
         appdose = nfrenkel/natoms # actually applied dose in cdpa: account for rounding errors 
+
+        comm.barrier ()
         sys.stdout.flush () 
         mpiprint (f"Initialising {nfrenkel} Frenkel pairs, leading to a dose increment (cdpa) of: {appdose}")
 
@@ -499,6 +501,8 @@ def main():
             lmp.command(f"create_atoms {_type} random {_count} {_rng} NULL overlap {exc_radius} maxtry 10000")
 
         sclock = time.time() - sclock
+
+        comm.barrier ()
         sys.stdout.flush () 
         mpiprint ("\nInserting atoms finished in %8.4f seconds.\n" % sclock)
 
