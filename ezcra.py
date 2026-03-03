@@ -204,8 +204,15 @@ def main():
     sy = np.linalg.norm(iy)
     sz = np.linalg.norm(iz)
 
+    # relaxation energy tolerance
     etol = float(all_input["etol"])
     etolstring = "%.5e" % etol
+
+    # max number of CG relaxation steps
+    if "max_steps" in all_input:
+        max_steps = all_input["max_steps"]
+    else:
+        max_steps = 50000
 
     # export every nth number of iterations
     export_nth = int(all_input["export_nth"])
@@ -401,7 +408,7 @@ def main():
 
     # if the simulation is not continuing from a restart file, relax structure and box dimensions
     if not restartfile:
-        lmp.command('minimize %s 0 10000 10000' % (etolstring))
+        lmp.command(f'minimize {etolstring} 0 {max_steps} {max_steps}')
 
         rxstate = None
         if np.setdiff1d (["x","y","z","xy","xz","yz"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) == 1e-9:
@@ -419,7 +426,7 @@ def main():
             rxstate = "mixed"
 
         lmp.command('min_modify line quadratic')
-        lmp.command('minimize %s 0 10000 10000' % (etolstring))
+        lmp.command(f'minimize {etolstring} 0 {max_steps} {max_steps}')
 
         # freeze box dimensions again
         if rxstate == "tri":
@@ -429,10 +436,6 @@ def main():
         else:
             for sij in boxstress:
                 lmp.command('unfix f%sfree' % sij)
-
-        # wrap atoms back into the box
-        lmp.command('reset_timestep 0')
-        lmp.command('run 0')
 
         # print initial thermo quantities in log file
         lmp.command("variable vpe equal pe")
@@ -446,6 +449,10 @@ def main():
         lmp.command("variable vly equal ly")
         lmp.command("variable vlz equal lz")
         lmp.command("print '%d %f ${vpe} ${vpxx} ${vpyy} ${vpzz} ${vpxy} ${vpxz} ${vpyz} ${vlx} ${vly} ${vlz}' append %s/log/%s.log" % (iteration, 0.0, simdir, job_name))
+
+    # reset timestep and wrap atoms back into the box
+    lmp.command("reset_timestep 0")
+    lmp.command('run 0')
 
     # print out first dump
     if not restartfile:
@@ -509,7 +516,7 @@ def main():
         dpadose += appdose
         
         # first, relax atomic coordinates only
-        lmp.command('minimize %s 0 10000 10000' % (etolstring))
+        lmp.command(f'minimize {etolstring} 0 {max_steps} {max_steps}')
 
         # next, also relax box dimensions
         rxstate = None
@@ -528,7 +535,7 @@ def main():
             rxstate = "mixed"
 
             lmp.command('min_modify line quadratic')
-            lmp.command('minimize %s 0 10000 10000' % (etolstring))
+            lmp.command(f'minimize {etolstring} 0 {max_steps} {max_steps}')
 
             # freeze box dimensions again
             if rxstate == "tri":
@@ -539,7 +546,8 @@ def main():
                 for sij in boxstress:
                     lmp.command('unfix f%sfree' % sij)
 
-        # wrap atoms back into the box
+        # reset timestep and wrap atoms back into the box
+        lmp.command("reset_timestep 0")
         lmp.command('run 0')
 
         # print thermo quantities in log file
