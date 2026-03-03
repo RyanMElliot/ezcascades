@@ -698,13 +698,6 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
 
         if (me == 0):
-            json.dump({"x_max":np.max(_x),
-                       "x_min":np.min(_x),
-                       "xfrac":_xfrac.tolist(),
-                       "cmat":cmat.tolist(),
-                       "x": _x.tolist()},
-                       open("%s/%s/%s.json" % (scrdir, job_name, job_name), 'w'), indent=4)
-            
             # incremental applied dose (using damage energy)
             appdose = 0.0
             doselimit = incrementdpa
