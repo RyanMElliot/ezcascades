@@ -3,8 +3,8 @@ import os
 import sys
 import json
 import glob
+import time 
 import numpy as np
-from scipy.spatial import cKDTree
 
 from lib.eam_info import eam_info
 from lib.lindhard import Lindhard, quickdamage
@@ -57,8 +57,9 @@ kB = 8.617333262e-5
 
 def main():
     program_descripton = f'''
-        LAMMPS Simulation script for running overlapping cascades for alloys
+        LAMMPS Simulation script for running creation relaxation algorithm 
 
+        Samanyu Tirumala, Mar 2026
         Max Boleininger, Aug 2024
         max.boleininger@ukaea.uk
 
@@ -117,8 +118,6 @@ def main():
             for file in glob.glob("%s/%s/*.dump" % (scrdir, job_name)):
                 os.remove(file)
             for file in glob.glob("%s/%s/*.restart" % (scrdir, job_name)):
-                os.remove(file)
-            for file in glob.glob("%s/log/%s.pka" % (simdir, job_name)):
                 os.remove(file)
             for file in glob.glob("%s/log/%s.log" % (simdir, job_name)):
                 os.remove(file)
@@ -226,56 +225,30 @@ def main():
     else:
         initial = None
 
-
-    athermal = True
     # whether to run CG after each cascade propagation step
+    # CRA: by definition athermal, with CG after each propagation
+    athermal = True
     runCG = True
 
-
-    # ------------------------------
-    #  COLLISION CASCADE PARAMETERS
-    # ------------------------------
-
-    # PKA events (eV) 
-    PKAfile = all_input["PKAfile"] 
-
-    # Import PKA events 
-    if me == 0:
-        mpiprint ("Importing PKA spectrum %s" % PKAfile)
-        pkas = np.loadtxt(PKAfile, dtype=float)
-        if pkas.shape == ():
-            pkas = np.array([pkas])
-        mpiprint ("Imported PKA spectrum of size %d events, min, mean, max energies: %6.4f %6.4f %6.4f" % (len(pkas), np.min(pkas), np.mean(pkas), np.max(pkas)))
-        mpiprint ()
-    else:
-        pkas = None
-    comm.barrier()
-    pkas = comm.bcast(pkas, root=0)
-    comm.barrier()
-
-    # min threshold displacement energy (eV), cascade fragmentation energy (eV), and average displacement threshold energy (eV)
-    pkamin = all_input["PKAmin"]
-    pkamax = all_input["PKAmax"]
-    edavg = all_input["edavg"]
-
-    # minimum electronic stopping energy (eV)
-    electronic_stopping_threshold = all_input["electronic_stopping_threshold"]
-
-    # melting temperature, used to limit langevin fix to cold atoms and to estimate cascade heat spike size
-    Tmelt = all_input['melting_temperature']
-
-    # max dpa to propagate simulations for 
+    # max (canonical) dpa to propagate simulations for 
     if "maxdpa" in all_input:
         maxdpa = all_input["maxdpa"]
     else:
         maxdpa = 1.0
 
-    # target dpa increment per cascade iteration (0.2 mpda results in an instantaneous temperature increase of 300K)
+    # target (canonical) dpa increment per cra iteration, e.g 0.002 corresponds to insertion of 0.2% appm Frenkel pairs
     if "incrementdpa" in all_input:
         incrementdpa = all_input["incrementdpa"]
     else:
-        incrementdpa = 0.0002
+        incrementdpa = 0.002
 
+    # CRA insertion exclusion radius in Angstrom to avoid inserting atoms into ill-defined regions of the potential 
+    if "exclusion_radius" in all_input:
+        exc_radius = all_input["exclusion_radius"]
+    else:
+        exc_radius = 0.2
+
+    # fetch atomic composition
     composition = {int(_type):all_input["composition"][_type] for _type in all_input["composition"].keys()}
 
     # we do not consider elements with zero contribution to the composition.
@@ -336,7 +309,7 @@ def main():
     # read restart file and continue simulation from there, if available 
     if restartfile:
         announce("Restarting from last cascade file: %s" % restartfile)
-        lmp.command('read_data %s' % restartfile)
+        lmp.command('read_restart %s' % restartfile)
 
         # import log file and fetch last dose
         logdata = np.loadtxt('%s/log/%s.log' % (simdir, job_name))
@@ -344,7 +317,6 @@ def main():
         iteration = logdata[-1,0]
         
         lmp.command("print '# restart' append %s/log/%s.log" % (simdir, job_name))
-        lmp.command("print '# restart' append %s/log/%s.pka" % (simdir, job_name))
 
     elif initial:
         # otherwise look for an initial file
@@ -410,7 +382,6 @@ def main():
 
     # load potential
     pottype = potfile.split('.')[-1]
-
     lmp.command('pair_style eam/%s' % pottype)
     lmp.command(('pair_coeff * * %s ' % potfile) + '%s '*nelements % tuple(potential.ele))
 
@@ -422,17 +393,11 @@ def main():
 
     lmp.command('run 0')
     
-    # time step in femtoseconds
-    timestep = 0.002 
-    lmp.command('timestep %f' % timestep)
-
-    # thermo_style rate, same rate as updating Langevin damping group 
-    nth = 100
-
+    # thermo_style rate
+    nth = 500
     lmp.command('thermo %d' % nth)
-    lmp.command('thermo_style custom step dt time temp press pe pxx pyy pzz pxy pxz pyz lx ly lz')
-    lmp.command("thermo_modify line one format line '%8d %5.3e %7.3f %6.3f %11.3e %15.8e  %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %7.3f %7.3f %7.3f'")
-
+    lmp.command('thermo_style custom step press pe pxx pyy pzz pxy pxz pyz lx ly lz')
+    lmp.command("thermo_modify line one format line '%8d %11.3e %15.8e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %7.3f %7.3f %7.3f'")
 
     # if the simulation is not continuing from a restart file, relax structure and box dimensions
     if not restartfile:
@@ -482,342 +447,95 @@ def main():
         lmp.command("variable vlz equal lz")
         lmp.command("print '%d %f ${vpe} ${vpxx} ${vpyy} ${vpzz} ${vpxy} ${vpxz} ${vpyz} ${vlx} ${vly} ${vlz}' append %s/log/%s.log" % (iteration, 0.0, simdir, job_name))
 
-        # for consistency, also write an essentially empty line into the pka file 
-        lmp.command("print '%d 0.0' append %s/log/%s.pka" % (iteration, simdir, job_name))
-
-    lmp.command('thermo %d' % nth)
-    lmp.command('thermo_style custom step dt time temp press pe pxx pyy pzz pxy pxz pyz lx ly lz')
-    lmp.command("thermo_modify line one format line '%8d %5.3e %7.3f %6.3f %11.3e %15.8e %10.2e %10.2e %10.2e %10.2e %10.2e %10.2e %7.3f %7.3f %7.3f'")
-
-    # apply Langevin damping to dynamic group
-    lmp.command('run 0')
-
-    rndnumber = None
-    if (me == 0):
-        rndnumber = np.random.randint(1e8)
-    rndnumber = comm.bcast(rndnumber, root=0)
-
-    if athermal:
-        lmp.command('fix fnve all nve')
- 
-    # keep box centre of mass from drifting
-    lmp.command("fix frecenter all recenter INIT INIT INIT")
-          
-    # initialise velocities and thermalise if this is a finite temperature run
+    # print out first dump
     if not restartfile:
-
-        lmp.command('velocity all create 0.0 1 mom yes rot no')
-
-        # print out first dump
         if all_input['write_data']:
             lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z' % (scrdir, job_name, job_name, iteration))
 
-
-    # lindhard electronic stopping model for damage energy
-    # build model averaged over the chance of occurrence of the specific projectile and target elements model 
-    masslist = list(masses.values())
-    zlist = list(znums.values())
-    complist = list(composition.values())
-
-    tdmodels = {}
-    for i in range(nelements):
-        for j in range(nelements):
-            tdmodels[(i,j)] = Lindhard (masslist[i], masslist[j], zlist[i], zlist[j])
-
-    # averaged model 
-    def avg_tdmodel (Epka):
-        tdenergy = 0.0
-        for i in range(nelements):
-            for j in range(nelements):
-                tdenergy += complist[i]*complist[j]*tdmodels[(i,j)](Epka)
-        tdenergy *= 1/sum(complist)**2
-        return tdenergy
-
-    tdmodel = np.vectorize (avg_tdmodel)
-
-    # damage energy correction due to (typically) 10 eV cutoff in simulation
-    dE = electronic_stopping_threshold - tdmodel (electronic_stopping_threshold)
-
-    # estimate melting energy from 6*kB*Tmelt (overestimation as no latent heat of fusion given)
-    emelt_guess = 6.*kB*Tmelt # in eV
-
-    # define exclusion radius method 
-    def exclusion_radius (PKAenergy):
-        nmelt = PKAenergy/emelt_guess   # app. number of molten atoms
-
-        if potential.crystal == 'bcc':
-            vmelt = nmelt * .5*alattice**3  # app. melt volume in Ang^3
-        if potential.crystal == 'fcc':
-            vmelt = nmelt * .25*alattice**3  # app. melt volume in Ang^3
-
-        rmelt = np.power(3./(4.*np.pi)*vmelt, 1./3.) # app. melt radius in Ang
-        rbuffer = 5.0 # additional buffer in Ang
-        exc_rad = rmelt + rbuffer # total exclusion radius in Ang
-        return exc_rad
-    exc_radius = np.vectorize (exclusion_radius)
-
-    
-    species = np.array(lmp.gather_atoms('type', 0, 1))
-        
-    Nspecies = np.array([sum(species == k) for k in range(1, nelements + 1)])
-            
-    # run consecutive cascades 
+    # run CRA iterations 
     for cloop in range(1, int(1e6)):
-    
+   
         if dpadose >= maxdpa:
-            announce ("Finished simulation. Current dose is %8.3f dpa, with target dose given by %8.3f dpa." % (dpadose, maxdpa))
-            break 
- 
-        # extract cell dimensions 
-        N = lmp.extract_global("natoms", 0)
-        xlo, xhi = lmp.extract_global("boxxlo", 2), lmp.extract_global("boxxhi", 2)
-        ylo, yhi = lmp.extract_global("boxylo", 2), lmp.extract_global("boxyhi", 2)
-        zlo, zhi = lmp.extract_global("boxzlo", 2), lmp.extract_global("boxzhi", 2)
-        xy, yz, xz = lmp.extract_global("xy", 2), lmp.extract_global("yz", 2), lmp.extract_global("xz", 2)
+            announce ("Finished simulation. Current dose is %8.3f cdpa, with target dose given by %8.3f cdpa." % (dpadose, maxdpa))
+            break
+     
+        # fetch number of atoms to be displaced 
+        natoms  = lmp.extract_global("natoms", 0)
+        nfrenkel = int(natoms*incrementdpa)
+        appdose = nfrenkel/natoms # actually applied dose in cdpa: account for rounding errors 
+        sys.stdout.flush () 
+        mpiprint (f"Initialising {nfrenkel} Frenkel pairs, leading to a dose increment (cdpa) of: {appdose}")
 
-        # Relevant documentation: https://docs.lammps.org/Howto_triclinic.html 
-        xlb = xlo + min(0.0,xy,xz,xy+xz)
-        xhb = xhi + max(0.0,xy,xz,xy+xz)
-        ylb = ylo + min(0.0,yz)
-        yhb = yhi + max(0.0,yz)
-        zlb, zhb = zlo, zhi
+        # we need the IDs types of atoms so that we know which to delete/regenerate 
+        ids = np.ctypeslib.as_array(lmp.gather_atoms("id", 0, 1))
+        types = np.ctypeslib.as_array(lmp.gather_atoms("type", 0, 1))
 
-        lims_lower = np.r_[xlb, ylb, zlb]  # bounding box origin
-        lims_upper = np.r_[xhb, yhb, zhb]  # bounding box corner
-        lims_width = lims_upper-lims_lower # bounding box width
+        # select nfrenkel random atoms to be deleted
+        rnd_selection = None
+        if me == 0:
+            rnd_selection = np.random.choice(np.r_[:natoms], size=nfrenkel, replace=False)
+        rnd_selection = comm.bcast(rnd_selection, root=0)
+       
+        delete_ids = ids[rnd_selection]
+        insert_types = types[rnd_selection]
 
-        # Basis matrix for converting scaled -> cart coords
-        c1 = np.r_[xhi-xlo, 0., 0.]
-        c2 = np.r_[xy, yhi-ylo, 0.]
-        c3 = np.r_[xz, yz, zhi-zlo]
-        cmat =  np.c_[[c1,c2,c3]].T
-        cmati = np.linalg.inv(cmat)
+        # delete chosen atoms (create the vacancies)
+        lmp.command("group gdel id" + " %d"*nfrenkel % tuple(delete_ids)) 
+        lmp.command("delete_atoms group gdel compress yes")
+        lmp.command("group gdel delete")
 
-        _x = np.ctypeslib.as_array(lmp.gather_atoms("x", 1, 3)).reshape(N, 3)
-        _x = _x - np.array([xlo,ylo,zlo])
+        # insert atoms anew (create the interstitials)
+        sclock = time.time()
+        _insert_types, _insert_counts = np.unique(insert_types, return_counts=True)
 
-        # convert to fractional coordinates (einsum is faster than mat-mul) 
-        _xfrac = np.einsum("ij,kj->ki", cmati, _x)
-
-        # we need the IDs so that we know which atom type we are kicking 
-        _ids = np.ctypeslib.as_array(lmp.gather_atoms("type", 0, 1))
-
-
+        # new random seed
+        _rng = None
         if (me == 0):
-            # incremental applied dose (using damage energy)
-            appdose = 0.0
-            doselimit = incrementdpa 
+            _rng = np.random.randint(10000000)
+        _rng = comm.bcast (_rng, root=0)
 
-            mpiprint ("Draw random cascade energies until the minimal dose increment is reached.")
+        # create new atoms
+        for _type, _count in zip(_insert_types, _insert_counts): 
+            lmp.command(f"create_atoms {_type} random {_count} {_rng} NULL overlap {exc_radius} maxtry 10000")
 
-            # upper limit: no more than 1.2 times dose limit
-            nattempts = 0
-            incrtol = 0.0 
-
-            while (appdose >= (1.2+incrtol)*doselimit) or appdose == 0.0:
-                appdose = 0.0
-                cascade_pka = []
-
-                # lower limit: higher than dose limit
-                while (appdose <= (1.0-incrtol)*doselimit):
-                    epka = 0.
-                    while (epka <= pkamin) or (epka > pkamax):
-                        epka = np.random.choice(pkas)
-                    cascade_pka += [epka]
-
-                    # convert pka energies to damage energies
-                    tdams = np.array([tdmodel(_pka)+dE for _pka in cascade_pka])
-
-                    # compute frenkel pairs produced in NRT model and update dose increment
-                    ndefects = np.array([quickdamage(_td, edavg) for _td in tdams])
-                    appdose = np.sum(ndefects/N)
-
-                nattempts += 1
-                if nattempts >= 1000:
-                    print ()
-                    print ("Could not draw damage energies within the range of [%3.2f*doseincrement, %3.2f*doseincrement] after %d attempts!" % (1.0-incrtol, 1.2+incrtol, nattempts))
-                    incrtol += 0.1
-                    print ("Increasing interval range.")
-                    print ()
-
-            print ("Dose increment:", appdose)
-
-
-            # sort PKA energies in descending order to ensure we can fit in the largest cascades
-            cascade_pka = np.flip(np.sort(cascade_pka))
-            ncascades = len(cascade_pka)
-
-            mpiprint ("Initialising %d cascades leading to a dose increment of %9.5f dpa with energies (eV):" % (ncascades, appdose))
-            print ("damage energies:")
-            print (cascade_pka)
-            mpiprint ()
-
-            cascade_pos = []
-            mpiprint ("Drawing random non-overlapping cascade positions.")
-
-            count = 0
-            while (len(cascade_pos) < ncascades):
-
-                # first, create a trial cascade inside the bounding box
-                trisuccess = False
-                for nattempts in range(int(1e6)):
-                    _trial_pos = lims_width*np.random.rand(3)
-
-                    # next, check if the point lies inside the triclinic box, otherwise repeat
-                    _trial_pos
-                    _frac = cmati@_trial_pos
-                    if (_frac > 0.0).all() and (_frac < 1.0).all():
-                        trisuccess = True
-                        break
-                
-                if not trisuccess:
-                    annouce ("Error: could not place a random point inside triclinic cell after %d attempts." % nattempts)
-                    return 1
-
-                _ncasc = len(cascade_pos)
-                if _ncasc == 0: 
-                    # always accept the first cascade
-                    cascade_pos += [_trial_pos]
-                else:
-                    # subsequent cascades need to be checked for overlap
-
-                    # compute distance between trial cascade and all other cascades using minimum img convention
-                    dr = cascade_pos - _trial_pos
-                    df = np.array([cmati@dri for dri in dr])
-                    df[df  > .5] -= 1.0
-                    df[df <=-.5] += 1.0
-                    dr = np.array([cmat@dfi for dfi in df]) # convert back to cartesian coordinates
-                    dnorm = np.linalg.norm(dr, axis=1)
-
-                    # get exclusion distances
-                    excdist = exc_radius(cascade_pka[:_ncasc]) + exc_radius(cascade_pka[_ncasc])
-
-                    # only accept cascade if all of the distances exceeed the exclusion distances
-                    if (dnorm > excdist).all():
-                        cascade_pos += [_trial_pos]
-
-                if count >= 1e6:
-                    mpiprint("Error: could not reach target dose after %d iterations (current dose: %8.5f)" % (count, appdose))
-                    return 0
-                count += 1
-
-            cascade_pos = np.r_[cascade_pos]
-
-            mpiprint ()
-            mpiprint ("Selected cascade positions (Ang) and recoil energies (eV):")
-            for _cp in range(ncascades):
-                mpiprint ("(%8.3f, %8.3f, %8.3f)  %8.5f" % (cascade_pos[_cp][0], cascade_pos[_cp][1], cascade_pos[_cp][2], cascade_pka[_cp]))
-            mpiprint ()
-
-            # build KDTree (in fractional coords) for nearest neighbour search containing all atomic data
-            xf_ktree = cKDTree(_xfrac, boxsize=[1,1,1])
-
-            # find atoms nearest to cascade centres to apply kicks to
-            kick_indices = [xf_ktree.query(cmati@_cpos, k=1)[1] for _cpos in cascade_pos]  # +1 for LAMMPS
-
-            # kick velocities in Ang/ps (same as velocity in LAMMPS metal units)
-            kickvelocities = np.array([np.sqrt(2.*cascade_pka[i]/(masses[str(_ids[ki])] * 1.03499e-4)) for i,ki in enumerate(kick_indices)])
-            _sph = sample_spherical(ncascades)
-            kick_velocities = [kickvelocities[_i]*_sph[_i] for _i in range(ncascades)]
-        else:
-            cascade_pos = None
-            cascade_pka = None
-            kick_indices = None
-            kick_velocities = None 
-            appdose = None
- 
-
-        comm.barrier()
-
-        cascade_pos = comm.bcast(cascade_pos, root = 0)
-        cascade_pka = comm.bcast(cascade_pka, root=0)
-        kick_indices = comm.bcast(kick_indices, root=0)
-        kick_velocities = comm.bcast(kick_velocities, root=0) 
-        appdose = comm.bcast(appdose, root=0) 
-        ncascades = len(cascade_pka)
+        sclock = time.time() - sclock
+        sys.stdout.flush () 
+        mpiprint ("\nInserting atoms finished in %8.4f seconds.\n" % sclock)
 
         dpadose += appdose
         
-        # apply random displacements to the selected atoms
-        for _c in range(ncascades):
-            _rad = exclusion_radius(cascade_pka[_c])
+        # first, relax atomic coordinates only
+        lmp.command('minimize %s 0 10000 10000' % (etolstring))
 
-            _ki = kick_indices[_c]
-            mpiprint("Atom ID %d at (%8.3f, %8.3f, %8.3f) gets %12.6f eV recoil energy (%12.6f A/ps)." % (1+_ki,
-                    _x[_ki][0]+xlo, _x[_ki][1]+ylo, _x[_ki][2]+zlo, cascade_pka[_c], np.linalg.norm(kick_velocities[_c])))
-        
-            lmp.command('region cra_region sphere %8.3f %8.3f %8.3f %8.3f units box' % (_x[_ki][0]+xlo, _x[_ki][1]+ylo, _x[_ki][2]+zlo, _rad))
-            
-            ndefects = quickdamage(cascade_pka[_c], edavg)
+        # next, also relax box dimensions
+        rxstate = None
+        if np.setdiff1d (["x","y","z","xy","xz","yz"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) == 1e-9:
+            # set as triclinic relaxation if all dimensions can relax
+            lmp.command('fix ftri all box/relax tri 0.0 vmax 0.0001 nreset 100')
+            rxstate = "tri"
+        elif np.setdiff1d (["x","y","z"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) < 1e-9:
+            # set as orthorhombic relaxation if x,y,z dimensions can relax
+            lmp.command('fix faniso all box/relax aniso 0.0 vmax 0.0001 nreset 100')
+            rxstate = "aniso"
+        else:
+            # otherwise introduce multiple fixes
+            for sij in boxstress:
+                lmp.command('fix f%sfree all box/relax %s %f vmax 0.0001 nreset 100' % (sij, sij, boxstress[sij]))
+            rxstate = "mixed"
 
-            if me == 0:
-                ndefects = np.random.poisson(ndefects)
-            comm.barrier()
-            ndefects = comm.bcast(ndefects, root = 1)
-
-            rng = 0
-            if me == 0:
-                rng = np.random.randint(low = 1, high = 1e6)
-            comm.barrier() 
-            rng = comm.bcast(rng, root = 0)
-            lmp.command('delete_atoms random count %d no all cra_region %d' % (ndefects, rng))
-
-            species_new = np.array(lmp.gather_atoms('type', 0, 1))
-                
-            Nspecies_new = np.array([sum(species_new == k) for k in range(1, nelements + 1)])
-            
-            Ncreate = Nspecies - Nspecies_new
-
-            for _Ncreate in Ncreate:
-                rng = 0
-                if me == 0:
-                    rng = np.random.randint(low = 1, high = 1e6)
-                comm.barrier() 
-                rng = comm.bcast(rng, root = 0)
-                lmp.command('create_atoms 1 random %d %d cra_region overlap %8.3f' % (_Ncreate, rng, 0.5))
-
-            lmp.command('region cra_region delete')
-        
-
-        mpiprint ()
-
-        if runCG:
-            # zero out velocities
-            lmp.command('velocity all create 0.0 1 mom yes rot no')
- 
-            # relax atomic coordinates only
+            lmp.command('min_modify line quadratic')
             lmp.command('minimize %s 0 10000 10000' % (etolstring))
 
-            rxstate = None
-            if np.setdiff1d (["x","y","z","xy","xz","yz"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) == 1e-9:
-                # set as triclinic relaxation if all dimensions can relax
-                lmp.command('fix ftri all box/relax tri 0.0 vmax 0.0001 nreset 100')
-                rxstate = "tri"
-            elif np.setdiff1d (["x","y","z"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) < 1e-9:
-                # set as orthorhombic relaxation if x,y,z dimensions can relax
-                lmp.command('fix faniso all box/relax aniso 0.0 vmax 0.0001 nreset 100')
-                rxstate = "aniso"
+            # freeze box dimensions again
+            if rxstate == "tri":
+                lmp.command('unfix ftri') 
+            elif rxstate == "aniso":
+                lmp.command('unfix faniso')
             else:
-                # otherwise introduce multiple fixes
                 for sij in boxstress:
-                    lmp.command('fix f%sfree all box/relax %s %f vmax 0.0001 nreset 100' % (sij, sij, boxstress[sij]))
-                rxstate = "mixed"
-
-                lmp.command('min_modify line quadratic')
-                lmp.command('minimize %s 0 10000 10000' % (etolstring))
-
-                # freeze box dimensions again
-                if rxstate == "tri":
-                    lmp.command('unfix ftri') 
-                elif rxstate == "aniso":
-                    lmp.command('unfix faniso')
-                else:
-                    for sij in boxstress:
-                        lmp.command('unfix f%sfree' % sij)
+                    lmp.command('unfix f%sfree' % sij)
 
         # wrap atoms back into the box
-        # lmp.command('unfix ftimestep')
-        # lmp.command('reset_timestep 0')
         lmp.command('run 0')
 
         # print thermo quantities in log file
@@ -833,14 +551,10 @@ def main():
         lmp.command("variable vlz equal lz")
         lmp.command("print '%d %f ${vpe} ${vpxx} ${vpyy} ${vpzz} ${vpxy} ${vpxz} ${vpyz} ${vlx} ${vly} ${vlz}' append %s/log/%s.log" % (iteration+cloop, dpadose, simdir, job_name))
 
-        # append to recoil energy log file
-        pka_string = "print '%d " % (iteration+cloop) + "%10.6f "*len(cascade_pka) % tuple(cascade_pka) +  "' append %s/log/%s.pka" % (simdir, job_name)
-        lmp.command(pka_string)
-
-        # write restart file always - this is in data format for also reading velocities
+        # write restart file always
         dfile = "%s/%s/%s.restart" % (scrdir, job_name, job_name)
         announce("Writing restart file: %s" % dfile)
-        lmp.command('write_data %s' % dfile) 
+        lmp.command('write_restart %s' % dfile) 
 
         # write dump file every 'export_nth' steps
         if ((iteration + cloop) % export_nth) == 0:
@@ -860,7 +574,5 @@ if __name__ == "__main__":
 
     if mode == 'MPI':
         MPI.Finalize()
-
-
 
 
