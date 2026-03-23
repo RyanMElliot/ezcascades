@@ -218,11 +218,6 @@ def main():
     export_nth = int(all_input["export_nth"])
 
     # maintain stresses during relaxation or during MD using barostat 
-    if "constant_volume" in all_input:
-        constant_volume = all_input["constant_volume"]
-    else:
-        constant_volume = False
-    
     if "boxstress" in all_input:
         boxstress = all_input["boxstress"]
     else:
@@ -523,25 +518,22 @@ def main():
         # first, relax atomic coordinates only
         lmp.command(f'minimize {etolstring} 0 {max_steps} {max_steps}')
 
-        # next, also relax box dimensions if specified
+        # next, also relax box dimensions
         rxstate = None
-        
-        if not constant_volume:
-            if np.setdiff1d (["x","y","z","xy","xz","yz"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) == 1e-9:
-                # set as triclinic relaxation if all dimensions can relax
-                lmp.command('fix ftri all box/relax tri 0.0 vmax 0.0001 nreset 100')
-                rxstate = "tri"
-            elif np.setdiff1d (["x","y","z"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) < 1e-9:
-                # set as orthorhombic relaxation if x,y,z dimensions can relax
-                lmp.command('fix faniso all box/relax aniso 0.0 vmax 0.0001 nreset 100')
-                rxstate = "aniso"
-            else:
-                # otherwise introduce multiple fixes
-                for sij in boxstress:
-                    lmp.command('fix f%sfree all box/relax %s %f vmax 0.0001 nreset 100' % (sij, sij, boxstress[sij]))
-                rxstate = "mixed"
+        if np.setdiff1d (["x","y","z","xy","xz","yz"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) == 1e-9:
+            # set as triclinic relaxation if all dimensions can relax
+            lmp.command('fix ftri all box/relax tri 0.0 vmax 0.0001 nreset 100')
+            rxstate = "tri"
+        elif np.setdiff1d (["x","y","z"], list(boxstress.keys())).size == 0 and np.sum(np.abs(list(boxstress.values()))) < 1e-9:
+            # set as orthorhombic relaxation if x,y,z dimensions can relax
+            lmp.command('fix faniso all box/relax aniso 0.0 vmax 0.0001 nreset 100')
+            rxstate = "aniso"
+        else:
+            # otherwise introduce multiple fixes
+            for sij in boxstress:
+                lmp.command('fix f%sfree all box/relax %s %f vmax 0.0001 nreset 100' % (sij, sij, boxstress[sij]))
+            rxstate = "mixed"
 
-            ###??? This block was indented but should it be? Minimise command is not accessed if it is idented so I have un-indented it relative to the if/elif/else- RyanMElliot
             lmp.command('min_modify line quadratic')
             lmp.command(f'minimize {etolstring} 0 {max_steps} {max_steps}')
 
@@ -553,7 +545,6 @@ def main():
             else:
                 for sij in boxstress:
                     lmp.command('unfix f%sfree' % sij)
-            ###??? (end edit)
 
         # reset timestep and wrap atoms back into the box
         lmp.command("reset_timestep 0")
