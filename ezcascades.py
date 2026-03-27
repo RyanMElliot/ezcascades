@@ -599,7 +599,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
 
         # print out first dump
         if all_input['write_data']:
-            lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z' % (scrdir, job_name, job_name, iteration))
+            lmp.command('write_dump all custom %s/%s/%s.%d.dump id type x y z vx vy vz' % (scrdir, job_name, job_name, iteration))
 
 
     # lindhard electronic stopping model for damage energy
@@ -935,7 +935,7 @@ WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING''' % tem
         if ((iteration + cloop) % export_nth) == 0:
             dfile = "%s/%s/%s.%d.dump" % (scrdir, job_name, job_name, iteration+cloop)
             announce("Writing dump file %s." % dfile)
-            lmp.command('write_dump all custom %s id type x y z' % dfile)     
+            lmp.command('write_dump all custom %s id type x y z vx vy vz' % dfile)     
 
         comm.barrier()
 
